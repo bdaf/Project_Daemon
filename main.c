@@ -16,10 +16,45 @@ int main(int argc, char **argv) {
 	int i;
 	/* Error Handling */
 	checkNumberOfArguments(argc);
-	for(i = 1; i < argc; i++){
+	for(i = 1; i < 3; i++){
 		if(checkIfPathIsCorrect(argv[i])!=0) 
 			exit (EXIT_FAILURE); 
 	}
+	/* Tu się zaczyna wklejony kod */
+	int aflag = 0;
+	int bflag = 0;
+	char *cvalue = NULL;
+	int index;
+	int c;
+
+	opterr = 0;
+
+	while ((c = getopt (argc, argv, "abc:")) != -1)
+		switch (c)
+		{
+		case 'a':
+			aflag = 1;
+			break;
+		case 'b':
+			bflag = 1;
+			break;
+		case 'c':
+			cvalue = optarg;
+			break;
+		case '?':
+			if (optopt == 'c')
+			fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+			else if (isprint (optopt))
+			fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+			else
+			fprintf (stderr,
+					"Unknown option character `\\x%x'.\n",
+					optopt);
+			return 1;
+		default:
+			abort ();
+		}
+	/* Tu się kończy  */
 	/* Daemon Itself */
 	preparingDaemon();
 	while (1) {
@@ -37,11 +72,10 @@ int main(int argc, char **argv) {
 		sleep(20); /* wait 20 seconds */
     }
 
-
-	printf("\nEverything worked! 🤩️\n"); 
-	printf("\nClick anything to back to console..\n"); 
-  	getchar(); 
-  	return 0; 
+		printf("\nEverything worked! 🤩️\n"); 
+		printf("\nClick anything to back to console..\n"); 
+		getchar(); 
+		return 0; 
 }
 
 /* Checking whether number of arguments is properly */ 
