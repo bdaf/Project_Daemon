@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 /* Checking whether number of arguments is properly */ 
 void checkNumberOfArguments(int argc){
 	if(argc >= 5){
-		write(1,"Eroor, too few arguments!\n",26);
+		write(1,"Eroor, too few karguments!\n",26);
 		exit (EXIT_FAILURE); 
 	}/*
 	if(argc < 8){
