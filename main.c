@@ -43,11 +43,11 @@ int main(int argc, char **argv) {
 			break;
 		case '?':
 			if (optopt == 'a' || optopt == 'b')
-				printf (stderr, "Option -%c requires an argument.\n", optopt);
+				printf ("Option -%c requires an argument.\n", optopt);
 			else if (isprint (optopt))
-				printf (stderr, "Unknown option `-%c'.\n", optopt);
+				printf ("Unknown option `-%c'.\n", optopt);
 			else
-				printf (stderr,"Unknown option character `\\x%x'.\n",optopt);
+				printf ("Unknown option character `\\x%x'.\n",optopt);
 			return EXIT_FAILURE;
 		default:
 			abort ();
