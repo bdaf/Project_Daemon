@@ -13,6 +13,8 @@
 void checkNumberOfArguments(int argc);
 int checkIfPathIsCorrect(char* argv);
 void preparingDaemon();
+void deleting(char* sourcePath, char* targetPath, int ifRecursion);
+void makePath(char* path, char* fileName, char* result);
 
 
 int main(int argc, char **argv) {
@@ -23,7 +25,7 @@ int main(int argc, char **argv) {
 	char *sourcePath = NULL;			/* Flag a */
 	char *targetPath = NULL;			/* Flag b */
 	int timeDeamon = 360;				/* Flag t */
-	int recursion = 0;					/* Flag R */
+	int ifRecursion = 0;					/* Flag R */
 	int dependenceOfFileSize = 1024;	/* Flag s */
 	/* Reseting opterr */
 	opterr = 0;
@@ -55,7 +57,7 @@ int main(int argc, char **argv) {
 		
 		break;
 	case 'R':
-		recursion = 1;
+		ifRecursion = 1;
 		break;
 	case '?':
 		if (optopt == 'a' || optopt == 'b'|| optopt == 't'|| optopt == 's')
@@ -82,36 +84,9 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		/* Parent process */
 		if (_pid > 0) {
-			/* Open firefox and execute process */
-			/* execlp("firefox", "firefox", "--browser", NULL);
-			exit(EXIT_FAILURE); */
-			/*  */
-			struct dirent* file = NULL;
-			DIR* targetFolder = opendir(targetPath);
-			DIR* sourceFolder = opendir(sourcePath);
-			/* Deleting in while */
-			while(file = readdir(targetFolder)){
-				if(file->d_type == DT_REG || (file->d_type == DT_DIR && recursion == 1) ){ /* If this is a regular file. */
-					char path[511];
-					strcpy(path,sourcePath);
-    				strcat(path,"/");
-					strcat(path,file->d_name);
-					
-					openlog("Logs from my program!", LOG_PID, LOG_USER);
-        			syslog(LOG_INFO, path);
+			deleting(sourcePath, targetPath, ifRecursion);
 
-					if(open(path, O_RDONLY)<0){
-						
-						strcpy(path,targetPath);
-						strcat(path,"/");
-						strcat(path,file->d_name);
-						remove(path);
-						syslog(LOG_INFO, path);
-					}
-					closelog();
-				}
-
-			}
+			
 
 
 
@@ -189,3 +164,52 @@ void preparingDaemon(){
         close(STDERR_FILENO);
 }
 
+void deleting(char* sourcePath, char* targetPath, int ifRecursion){
+	struct dirent* file = NULL;
+	DIR* targetFolder = opendir(targetPath);
+	DIR* sourceFolder = opendir(sourcePath);
+	/* Deleting in while */
+	char path[511];
+	while(file = readdir(targetFolder)){
+		if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
+			strcpy(path,sourcePath);
+			strcat(path,"/");
+			strcat(path,file->d_name);
+
+			openlog("Logs from my program!", LOG_PID, LOG_USER);
+        	syslog(LOG_INFO, path);
+
+			if(open(path, O_RDONLY)<0){
+						
+				strcpy(path,targetPath);
+				strcat(path,"/");
+				strcat(path,file->d_name);
+
+				remove(path);
+				syslog(LOG_INFO, path);
+			}
+			closelog();
+		}
+		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
+
+			char sPath[255];
+			strcpy(sPath,sourcePath);
+			strcat(sPath,"/");
+			strcat(sPath,file->d_name);
+			openlog("Logs from my program!", LOG_PID, LOG_USER);
+			syslog(LOG_INFO, sPath);
+			if(open(sPath, O_RDONLY)<0){	
+				strcpy(path,targetPath);
+				strcat(path,"/");
+				strcat(path,file->d_name);
+				deleting(sPath, path, ifRecursion);
+				remove(path);
+			}
+			closelog();
+		}
+	}
+}
+
+void makePath(char* path, char* fileName, char* result){
+	//to do - makePath(sourcePath,file->d_name, path);
+}
