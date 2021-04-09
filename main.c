@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <fcntl.h> 
 #include <stdio.h> 
 #include <stdlib.h>
@@ -24,34 +25,38 @@ int main(int argc, char **argv) {
 	char *avalue = NULL;
 	char *bvalue = NULL;
 	int cflag = 0;
-	int index;
+	int index, choice;
 	int a,b;
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "a:b:c")) != -1)
-		switch (c)
-		{
-		case 'a':
-			avalue = optarg;
-			break;
-		case 'b':
-			bvalue = optarg;
-			break;
-		case 'c':
-			cflag = 1;
-			break;
-		case '?':
-			if (optopt == 'a' || optopt == 'b')
-				printf ("Option -%c requires an argument.\n", optopt);
-			else if (isprint (optopt))
-				printf ("Unknown option `-%c'.\n", optopt);
-			else
-				printf ("Unknown option character `\\x%x'.\n",optopt);
-			return EXIT_FAILURE;
+	while ((choice = getopt (argc, argv, "a:b:c")) != -1)
+	switch (choice)
+	{
+	case 'a':
+		avalue = optarg;
+		break;
+	case 'b':
+		bvalue = optarg;
+		break;
+	case 'c':
+		cflag = 1;
+		break;
+	case '?':
+		if (optopt == 'a' || optopt == 'b')
+			printf ("Option -%c requires an argument.\n", optopt);
+		else if (isprint (optopt))
+			printf ("Unknown option `-%c'.\n", optopt);
+		else
+			printf ("Unknown option character `\\x%x'.\n",optopt);
+		return EXIT_FAILURE;
 		default:
 			abort ();
 		}
+
+	if(checkIfPathIsCorrect(avalue) != 0 || checkIfPathIsCorrect(bvalue) != 0 ) 
+		exit (EXIT_FAILURE); 
+	
 	/* Tu się kończy  */
 	/* Daemon Itself */
 	preparingDaemon();
@@ -78,23 +83,27 @@ int main(int argc, char **argv) {
 
 /* Checking whether number of arguments is properly */ 
 void checkNumberOfArguments(int argc){
-	if(argc < 3){
+	if(argc >= 5){
 		write(1,"Eroor, too few arguments!\n",26);
 		exit (EXIT_FAILURE); 
-	}
-	if(argc > 3){
+	}/*
+	if(argc < 8){
 		write(1,"Eroor, too many arguments!\n",27);
 		exit (EXIT_FAILURE); 
-	}
+	}*/
 }
 
 /* Returns '1' if error has been found, otherwise '0' */ 
 int checkIfPathIsCorrect(char* argv){
+	if(argv == NULL){ // do poprawy sprawdzic czy można w ejdnym ifie
+		write(1,"Error: At least one of the paths is incorrect 🤔️\n",54);
+		return -1;
+	}
 	struct stat check;
 	/* Error handling */ 
 	if(stat(argv,&check)<0 || !(check.st_mode & S_IFDIR)){
 		write(1,"Error: At least one of the paths is incorrect 🤔️\n",54);
-		return 1;
+		return -1;
 	}
 	return 0;
 }
