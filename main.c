@@ -17,10 +17,6 @@ int main(int argc, char **argv) {
 	int i;
 	/* Error Handling */
 	checkNumberOfArguments(argc);
-	for(i = 1; i < 3; i++){
-		if(checkIfPathIsCorrect(argv[i])!=0) 
-			exit (EXIT_FAILURE); 
-	}
 	/* Tu się zaczyna wklejony kod */
 	char *avalue = NULL;
 	char *bvalue = NULL;
@@ -53,7 +49,6 @@ int main(int argc, char **argv) {
 		default:
 			abort ();
 		}
-
 	if(checkIfPathIsCorrect(avalue) != 0 || checkIfPathIsCorrect(bvalue) != 0 ) 
 		exit (EXIT_FAILURE); 
 	
@@ -96,7 +91,7 @@ void checkNumberOfArguments(int argc){
 /* Returns '1' if error has been found, otherwise '0' */ 
 int checkIfPathIsCorrect(char* argv){
 	if(argv == NULL){ // do poprawy sprawdzic czy można w ejdnym ifie
-		write(1,"Error: At least one of the paths is incorrect 🤔️\n",54);
+		write(1,"You need to use -a and -b to set paths 🤔️\n",47);
 		return -1;
 	}
 	struct stat check;
