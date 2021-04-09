@@ -18,28 +18,45 @@ int main(int argc, char **argv) {
 	/* Error Handling */
 	checkNumberOfArguments(argc);
 	/* Tu się zaczyna wklejony kod */
-	char *avalue = NULL;
-	char *bvalue = NULL;
-	int cflag = 0;
-	int index, choice;
-	int a,b;
+	char *sourcePath = NULL;			/* Flag a */
+	char *targetPath = NULL;			/* Flag b */
+	int timeDeamon = 360;				/* Flag t */
+	int recursion = 0;					/* Flag R */
+	int dependenceOfFileSize = 1024;	/* Flag s */
 
 	opterr = 0;
 
-	while ((choice = getopt (argc, argv, "a:b:c")) != -1)
+	int choice;
+	while ((choice = getopt (argc, argv, "a:b:t:s:R")) != -1)
 	switch (choice)
 	{
 	case 'a':
-		avalue = optarg;
+		targetPath = optarg;
 		break;
 	case 'b':
-		bvalue = optarg;
+		sourcePath = optarg;
 		break;
-	case 'c':
-		cflag = 1;
+	case 't':
+		timeDeamon = atoi(optarg);
+		if(timeDeamon == 0){
+			write(1,"Invalid value of argument -t 🤔️\n",37);
+			exit (EXIT_FAILURE); 
+		}
+		break;
+	case 's':
+		dependenceOfFileSize = atoi(optarg);
+		if (dependenceOfFileSize == 0)
+		{
+			write(1,"Invalid value of argument -s 🤔️\n",37);
+			exit (EXIT_FAILURE); 
+		}
+		
+		break;
+	case 'R':
+		recursion = 1;
 		break;
 	case '?':
-		if (optopt == 'a' || optopt == 'b')
+		if (optopt == 'a' || optopt == 'b'|| optopt == 't'|| optopt == 's')
 			printf ("Option -%c requires an argument.\n", optopt);
 		else if (isprint (optopt))
 			printf ("Unknown option `-%c'.\n", optopt);
@@ -49,7 +66,8 @@ int main(int argc, char **argv) {
 		default:
 			abort ();
 		}
-	if(checkIfPathIsCorrect(avalue) != 0 || checkIfPathIsCorrect(bvalue) != 0 ) 
+
+	if(checkIfPathIsCorrect(targetPath) != 0 || checkIfPathIsCorrect(sourcePath) != 0 ) 
 		exit (EXIT_FAILURE); 
 	
 	/* Tu się kończy  */
@@ -67,7 +85,7 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 		/* Child process */
-		sleep(20); /* wait 20 seconds */
+		sleep(timeDeamon); /* wait 20 seconds */
     }
 
 		printf("\nEverything worked! 🤩️\n"); 
