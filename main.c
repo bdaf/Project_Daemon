@@ -1,3 +1,4 @@
+#include <syslog.h>
 #include <ctype.h>
 #include <fcntl.h> 
 #include <stdio.h> 
@@ -7,6 +8,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 void checkNumberOfArguments(int argc);
 int checkIfPathIsCorrect(char* argv);
@@ -17,24 +19,24 @@ int main(int argc, char **argv) {
 	int i;
 	/* Error Handling */
 	checkNumberOfArguments(argc);
-	/* Tu się zaczyna wklejony kod */
+	/* Initialing variables */
 	char *sourcePath = NULL;			/* Flag a */
 	char *targetPath = NULL;			/* Flag b */
 	int timeDeamon = 360;				/* Flag t */
 	int recursion = 0;					/* Flag R */
 	int dependenceOfFileSize = 1024;	/* Flag s */
-
+	/* Reseting opterr */
 	opterr = 0;
-
+	/* Validation, checking if arguments are properly typed */
 	int choice;
 	while ((choice = getopt (argc, argv, "a:b:t:s:R")) != -1)
 	switch (choice)
 	{
 	case 'a':
-		targetPath = optarg;
+		sourcePath = optarg;
 		break;
 	case 'b':
-		sourcePath = optarg;
+		targetPath = optarg;
 		break;
 	case 't':
 		timeDeamon = atoi(optarg);
@@ -65,12 +67,12 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 		default:
 			abort ();
-		}
+	}
 
 	if(checkIfPathIsCorrect(targetPath) != 0 || checkIfPathIsCorrect(sourcePath) != 0 ) 
 		exit (EXIT_FAILURE); 
+	/* End of validation */
 	
-	/* Tu się kończy  */
 	/* Daemon Itself */
 	preparingDaemon();
 	while (1) {
@@ -81,11 +83,41 @@ int main(int argc, char **argv) {
 		/* Parent process */
 		if (_pid > 0) {
 			/* Open firefox and execute process */
-			execlp("firefox", "firefox", "--browser", NULL);
-			exit(EXIT_FAILURE);
+			/* execlp("firefox", "firefox", "--browser", NULL);
+			exit(EXIT_FAILURE); */
+			/*  */
+			struct dirent* file = NULL;
+			DIR* targetFolder = opendir(targetPath);
+			DIR* sourceFolder = opendir(sourcePath);
+			/* Deleting in while */
+			while(file = readdir(targetFolder)){
+				if(file->d_type == DT_REG || (file->d_type == DT_DIR && recursion == 1) ){ /* If this is a regular file. */
+					char path[511];
+					strcpy(path,sourcePath);
+    				strcat(path,"/");
+					strcat(path,file->d_name);
+					
+					openlog("Logs from my program!", LOG_PID, LOG_USER);
+        			syslog(LOG_INFO, path);
+
+					if(open(path, O_RDONLY)<0){
+						
+						strcpy(path,targetPath);
+						strcat(path,"/");
+						strcat(path,file->d_name);
+						remove(path);
+						syslog(LOG_INFO, path);
+					}
+					closelog();
+				}
+
+			}
+
+
+
 		}
 		/* Child process */
-		sleep(timeDeamon); /* wait 20 seconds */
+		sleep(timeDeamon); /* wait that many seconds as is set after '-t' argument */
     }
 
 		printf("\nEverything worked! 🤩️\n"); 
