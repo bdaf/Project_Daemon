@@ -21,36 +21,34 @@ int main(int argc, char **argv) {
 			exit (EXIT_FAILURE); 
 	}
 	/* Tu się zaczyna wklejony kod */
-	int aflag = 0;
-	int bflag = 0;
-	char *cvalue = NULL;
+	char *avalue = NULL;
+	char *bvalue = NULL;
+	int cflag = 0;
 	int index;
-	int c;
+	int a,b;
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "abc:")) != -1)
+	while ((c = getopt (argc, argv, "a:b:c")) != -1)
 		switch (c)
 		{
 		case 'a':
-			aflag = 1;
+			avalue = optarg;
 			break;
 		case 'b':
-			bflag = 1;
+			bvalue = optarg;
 			break;
 		case 'c':
-			cvalue = optarg;
+			cflag = 1;
 			break;
 		case '?':
-			if (optopt == 'c')
-			fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+			if (optopt == 'a' || optopt == 'b')
+				printf (stderr, "Option -%c requires an argument.\n", optopt);
 			else if (isprint (optopt))
-			fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+				printf (stderr, "Unknown option `-%c'.\n", optopt);
 			else
-			fprintf (stderr,
-					"Unknown option character `\\x%x'.\n",
-					optopt);
-			return 1;
+				printf (stderr,"Unknown option character `\\x%x'.\n",optopt);
+			return EXIT_FAILURE;
 		default:
 			abort ();
 		}
