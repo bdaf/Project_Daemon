@@ -191,11 +191,7 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
         	syslog(LOG_INFO, path);
 
 			if(open(path, O_RDONLY)<0){
-						
-				strcpy(path,targetPath);
-				strcat(path,"/");
-				strcat(path,file->d_name);
-
+				makePath(targetPath, file->d_name, path);		
 				remove(path);
 				syslog(LOG_INFO, path);
 			}
