@@ -14,6 +14,11 @@ void checkNumberOfArguments(int argc);
 int checkIfPathIsCorrect(char* argv);
 void preparingDaemon();
 void deleting(char* sourcePath, char* targetPath, int ifRecursion);
+void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize);
+
+void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize);
+void copyRead(char* sourcePath, char* targetPath);
+
 void makePath(char* path, char* fileName, char* result);
 
 
@@ -25,7 +30,7 @@ int main(int argc, char **argv) {
 	char *sourcePath = NULL;			/* Flag a */
 	char *targetPath = NULL;			/* Flag b */
 	int timeDeamon = 360;				/* Flag t */
-	int ifRecursion = 0;					/* Flag R */
+	int ifRecursion = 0;				/* Flag R */
 	int dependenceOfFileSize = 1024;	/* Flag s */
 	/* Reseting opterr */
 	opterr = 0;
@@ -85,7 +90,7 @@ int main(int argc, char **argv) {
 		/* Parent process */
 		if (_pid > 0) {
 			deleting(sourcePath, targetPath, ifRecursion);
-
+			reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
 			
 
 
@@ -209,6 +214,59 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 		}
 	}
 }
+
+void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize){
+	struct dirent* file = NULL;
+	DIR* targetFolder = opendir(targetPath);
+	DIR* sourceFolder = opendir(sourcePath);
+	
+	char path[511];
+	while(file = readdir(sourceFolder)){
+		if(file->d_type == DT_REG){
+			strcpy(path,targetPath);
+			strcat(path,"/");
+			strcat(path,file->d_name);
+
+			if(open(path, O_RDONLY)<0){
+						
+				strcpy(path,sourcePath);
+				strcat(path,"/");
+				strcat(path,file->d_name);
+
+				copyFile(sourcePath, targetPath, dependenceOfFileSize);				
+			}
+		}
+	}
+}
+
+void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize){
+	copyRead(sourcePath, targetPath);
+}
+
+void copyRead(char* sourcePath, char* targetPath){
+	int bufor[16];
+	int sourceFile = open(sourcePath,O_RDONLY);
+	int targetFile = open(targetFile, O_CREAT | O_WRONLY | O_TRUNC , 0644);
+
+	if(sourceFile == -1 || targetFile == -1){
+		exit(EXIT_FAILURE);
+	}
+
+	int readSource;
+	int writeTarget;
+	while ((readSource = read(sourcePath, bufor, sizeof(bufor))) > 0)
+	{
+		writeTarget = write(targetFile, bufor, (ssize_t)readSource);
+		if (writeTarget == readSource)
+		{
+			exit(EXIT_FAILURE);
+		}
+		
+	}
+	
+
+}
+
 
 void makePath(char* path, char* fileName, char* result){
 	//to do - makePath(sourcePath,file->d_name, path);
