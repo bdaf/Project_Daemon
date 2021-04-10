@@ -168,6 +168,12 @@ void preparingDaemon(){
         close(STDOUT_FILENO);
         close(STDERR_FILENO);
 }
+void makePath(char* path, char* fileName, char* result){
+	strcpy(result,path);
+	strcat(result,"/");
+	strcat(result,fileName);
+}
+
 
 void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 	struct dirent* file = NULL;
@@ -177,9 +183,9 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 	char path[511];
 	while(file = readdir(targetFolder)){
 		if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
-			strcpy(path,sourcePath);
-			strcat(path,"/");
-			strcat(path,file->d_name);
+
+
+			makePath(sourcePath, file->d_name, path);
 
 			openlog("Logs from my program!", LOG_PID, LOG_USER);
         	syslog(LOG_INFO, path);
@@ -268,6 +274,3 @@ void copyRead(char* sourcePath, char* targetPath){
 }
 
 
-void makePath(char* path, char* fileName, char* result){
-	//to do - makePath(sourcePath,file->d_name, path);
-}
