@@ -204,31 +204,47 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 
 void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize){
 	struct dirent* file = NULL;
-	DIR* targetFolder = opendir(targetPath);
+	DIR* targetFolder = opendir(targetPath); /* Opening directories */
 	DIR* sourceFolder = opendir(sourcePath);
 	
 	char sPath[511];
 	char tPath[511];
-	while(file = readdir(sourceFolder)){
-		if(file->d_type == DT_REG){ /* If this is a regular file. */
-			makePath(targetPath, file->d_name, tPath);
+	while(file = readdir(sourceFolder)){ /* Reading directory - going through the files one by one */
+	/*makePath(targetPath, file->d_name, tPath);
+		if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
+			// if(open(tPath, O_RDONLY)<0){/* We check if file from source is in destination target path, if not, we create it. */
+			// 	makePath(sourcePath, file->d_name, sPath);
+			// 	copyFile(sPath, tPath, dependenceOfFileSize);	/* Copying / Creating file */	 		
+			// }
+		// }/* If this is a directory but not ('.' or '..') */
+		// else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
+		// 	if(open(tPath, O_RDONLY)<0){
+		// 		mkdir(tPath, 0755);
+		// 	}
+		// 	makePath(sourcePath, file->d_name, sPath);
 
-			if(open(tPath, O_RDONLY)<0){/* We check if filefrom source is in target, if not, we create it. */
-				makePath(sourcePath, file->d_name, sPath);
+		// 	reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);
+		// }
 
-				copyFile(sPath, tPath, dependenceOfFileSize);				
-			}
-		}
-		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
-			makePath(targetPath, file->d_name, tPath);	
-
-			if(open(tPath, O_RDONLY)<0){
-				mkdir(tPath, 0755);
-			}
+        makePath(targetPath, file->d_name, tPath);	
+		if(open(tPath, O_RDONLY)<0){
 			makePath(sourcePath, file->d_name, sPath);
+			if(file->d_type == DT_REG){
+				copyFile(sPath, tPath, dependenceOfFileSize);
+			}
+			else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
+                mkdir(tPath, 0755);
+			    reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);	
+			}
+			
+		}
 
-			reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);
-		} 
+
+
+
+
+
+
 	}
 }
 
