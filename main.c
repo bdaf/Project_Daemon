@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <utime.h>
 
 void checkNumberOfArguments(int argc);
 int checkIfPathIsCorrect(char* argv);
@@ -24,8 +25,8 @@ void copyHeavyFile(char* sourcePath, char* targertPath);
 void makePath(char* path, char* fileName, char* result);
 void writeToLog(char* msg);
 time_t getTime(char* path);
-off_t getSize(char path);
-void setTime(char* path, time_t timeToSet); 
+off_t getSize(char* path);
+void setTime(char* targetPath, time_t timeOfMod);
 
 
 int main(int argc, char **argv) {
@@ -220,6 +221,7 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 		if(descOfFile<0){ /* We check if file from source is in destination target path, if not, we create it. */
 			if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
 				copyFile(sPath, tPath, dependenceOfFileSize); /* Copying / Creating file */	
+				setTime(tPath,getTime(sPath)); /* Set time for file in 'tPath' from file in sPath */
 			} /* If this is a directory but not ('.' or '..') */
 			else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
                 mkdir(tPath, 0755);
@@ -230,7 +232,7 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 			if(file->d_type == DT_REG){
 				remove(tPath);
 				copyFile(sPath, tPath, dependenceOfFileSize);
-				setTime(tPath, getTime(sPath));
+				setTime(tPath,getTime(sPath));
 			}
 			else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
 				reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);	
@@ -280,16 +282,16 @@ void copyRead(char* sourcePath, char* targetPath){
 
 void writeToLog(char* msg){
 	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    syslog(LOG_INFO, msg);
+    syslog(LOG_INFO,(const char *)msg);
 	closelog();
 }
 
-off_t getSize(char path)
+off_t getSize(char* path)
 {
     struct stat size;
     if(stat(path, &size)==0)
     {
-        return rozmiar.st_size;
+        return size.st_size;
     }
 	writeToLog("Error during geting size of file");
     exit(EXIT_FAILURE);
@@ -307,19 +309,7 @@ time_t getTime(char* path) { /* Gets modyfication time from file / directory */
     return file.st_mtime;
 }
 
-void setTime(char* path, time_t timeToSet) { /* Sets modyfication time in file / directory */
-    struct stat file;
-    if(stat(path, &file) == -1){
-		char msg[511];
-		strcpy(msg,"Error during downloading modyfication time from file: ");
-		strcat(msg,path);
-		writeToLog(msg);
-        exit(EXIT_FAILURE);
-    }
-    file.st_mtime = timeToSet;
-}
-
-void copyHeavyFile(char* sourcePath, char* targertPath){
+void copyHeavyFile(char* sourcePath, char* targetPath){
 	int fd_in, fd_out;
            struct stat stat;
            off64_t len, ret;
@@ -337,7 +327,7 @@ void copyHeavyFile(char* sourcePath, char* targertPath){
 
            len = stat.st_size;
 
-           fd_out = open(targertPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+           fd_out = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
            if (fd_out == -1) {
                perror("open targetPath");
                exit(EXIT_FAILURE);
@@ -355,5 +345,18 @@ void copyHeavyFile(char* sourcePath, char* targertPath){
 
            close(fd_in);
            close(fd_out);
+		   writeToLog(targetPath);
 }
 
+void setTime(char* targetPath, time_t timeOfMod){
+	struct utimbuf time;
+	time.actime = timeOfMod;
+	time.modtime = timeOfMod;
+	if(utime(targetPath, &time)<0){
+		char msg[511];
+		strcpy(msg,"Error occured during setting time for file: ");
+		strcat(msg, targetPath);
+		writeToLog(msg);
+		exit(EXIT_FAILURE);
+	}
+}
