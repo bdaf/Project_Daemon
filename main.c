@@ -21,6 +21,8 @@ void copyRead(char* sourcePath, char* targetPath);
 
 void makePath(char* path, char* fileName, char* result);
 void writeToLog(char* msg);
+time_t getTime(char* path);
+void setTime(char* path, time_t timeToSet); 
 
 
 int main(int argc, char **argv) {
@@ -206,45 +208,25 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 	struct dirent* file = NULL;
 	DIR* targetFolder = opendir(targetPath); /* Opening directories */
 	DIR* sourceFolder = opendir(sourcePath);
-	
 	char sPath[511];
 	char tPath[511];
 	while(file = readdir(sourceFolder)){ /* Reading directory - going through the files one by one */
-	/*makePath(targetPath, file->d_name, tPath);
-		if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
-			// if(open(tPath, O_RDONLY)<0){/* We check if file from source is in destination target path, if not, we create it. */
-			// 	makePath(sourcePath, file->d_name, sPath);
-			// 	copyFile(sPath, tPath, dependenceOfFileSize);	/* Copying / Creating file */	 		
-			// }
-		// }/* If this is a directory but not ('.' or '..') */
-		// else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
-		// 	if(open(tPath, O_RDONLY)<0){
-		// 		mkdir(tPath, 0755);
-		// 	}
-		// 	makePath(sourcePath, file->d_name, sPath);
-
-		// 	reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);
-		// }
-
-        makePath(targetPath, file->d_name, tPath);	
-		if(open(tPath, O_RDONLY)<0){
-			makePath(sourcePath, file->d_name, sPath);
-			if(file->d_type == DT_REG){
-				copyFile(sPath, tPath, dependenceOfFileSize);
-			}
+		makePath(sourcePath, file->d_name, sPath);
+        makePath(targetPath, file->d_name, tPath);
+		int descOfFile = open(tPath, O_RDONLY);	
+		if(descOfFile<0){ /* We check if file from source is in destination target path, if not, we create it. */
+			if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
+				copyFile(sPath, tPath, dependenceOfFileSize); /* Copying / Creating file */	
+			} /* If this is a directory but not ('.' or '..') */
 			else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
                 mkdir(tPath, 0755);
 			    reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);	
 			}
-			
+		}/* We check if file from directory source is in destination target path, if so, we check modification date either */
+		else if(descOfFile>=0 && getTime(sPath)!=getTime(tPath)){ 
+               writeToLog("SiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiema");
+			   setTime(tPath, getTime(sPath);
 		}
-
-
-
-
-
-
-
 	}
 }
 
@@ -287,6 +269,30 @@ void writeToLog(char* msg){
 	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
     syslog(LOG_INFO, msg);
 	closelog();
+}
+
+time_t getTime(char* path) { /* Gets modyfication time from file / directory */
+    struct stat file;
+    if(stat(path, &file) == -1){
+		char msg[511];
+		strcpy(msg,"Error during downloading modyfication time from file: ");
+		strcat(msg,path);
+		writeToLog(msg);
+        exit(EXIT_FAILURE);
+		}
+    return file.st_mtime;
+}
+
+void setTime(char* path, time_t timeToSet) { /* Sets modyfication time in file / directory */
+    struct stat file;
+    if(stat(path, &file) == -1){
+		char msg[511];
+		strcpy(msg,"Error during downloading modyfication time from file: ");
+		strcat(msg,path);
+		writeToLog(msg);
+        exit(EXIT_FAILURE);
+    }
+    file.st_mtime = timeToSet;
 }
 
 
