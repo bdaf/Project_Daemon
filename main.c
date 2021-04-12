@@ -101,11 +101,7 @@ void checkNumberOfArguments(int argc){
 	if(argc < 5){
 		write(1,"Eroor, too few arguments!\n",26);
 		exit (EXIT_FAILURE); 
-	}/*
-	if(argc > 8){
-		write(1,"Eroor, too many arguments!\n",27);
-		exit (EXIT_FAILURE); 
-	}*/
+	}
 }
 
 /* Returns '1' if error has been found, otherwise '0' */ 
