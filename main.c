@@ -212,11 +212,23 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 	while(file = readdir(sourceFolder)){
 		if(file->d_type == DT_REG){ /* If this is a regular file. */
 			makePath(targetPath, file->d_name, tPath);
+
 			if(open(tPath, O_RDONLY)<0){/* We check if filefrom source is in target, if not, we create it. */
 				makePath(sourcePath, file->d_name, sPath);
+
 				copyFile(sPath, tPath, dependenceOfFileSize);				
 			}
 		}
+		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
+			makePath(targetPath, file->d_name, tPath);	
+
+			if(open(tPath, O_RDONLY)<0){
+				mkdir(tPath, 0755);
+			}
+			makePath(sourcePath, file->d_name, sPath);
+
+			reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);
+		} 
 	}
 }
 
@@ -243,7 +255,7 @@ void copyRead(char* sourcePath, char* targetPath){
 	int writeTarget;
 	while ((readSource = read(sourceFile, bufor, sizeof(bufor))) > 0){
 		writeTarget = write(targetFile, bufor, (ssize_t)readSource);
-		if (writeTarget < 0){
+		if (writeTarget != readSource){
 			char msg[511];
 			strcpy(msg,"Error writing one of target files: ");
 	        strcat(msg,targetPath);
@@ -251,6 +263,8 @@ void copyRead(char* sourcePath, char* targetPath){
 			exit(EXIT_FAILURE);
 		}
 	}
+	close(writeTarget);
+	close(readSource);
 }
 
 void writeToLog(char* msg){
