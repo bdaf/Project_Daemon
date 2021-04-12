@@ -224,8 +224,13 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 			}
 		}/* We check if file from directory source is in destination target path, if so, we check modification date either */
 		else if(descOfFile>=0 && getTime(sPath)!=getTime(tPath)){ 
-               writeToLog("SiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiema");
-			   setTime(tPath, getTime(sPath);
+            writeToLog("SiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiemaSiema");
+			if(file->d_type == DT_REG){
+				remove(tPath);
+				copyFile(sPath, tPath, dependenceOfFileSize);
+				setTime(tPath, getTime(sPath));
+			}
+			  
 		}
 	}
 }
