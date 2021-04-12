@@ -11,34 +11,41 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <utime.h>
+#include <signal.h>
+
 
 void checkNumberOfArguments(int argc);
 int checkIfPathIsCorrect(char* argv);
 void preparingDaemon();
 void deleting(char* sourcePath, char* targetPath, int ifRecursion);
 void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize);
+void deletingAndReviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize);
 
 void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize);
 void copyRead(char* sourcePath, char* targetPath);
-void copyHeavyFile(char* sourcePath, char* targertPath);
+void copyHeavyFile(char* sourcePath, char* targetPath);
 
 void makePath(char* path, char* fileName, char* result);
 void writeToLog(char* msg);
 time_t getTime(char* path);
 off_t getSize(char* path);
 void setTime(char* targetPath, time_t timeOfMod);
+void handler(int signum);
 
+char* sourcePath = NULL;
+char* targetPath = NULL;
+int timeDeamon, ifRecursion, dependenceOfFileSize;
 
 int main(int argc, char **argv) {
 	int i;
 	/* Error Handling */
 	checkNumberOfArguments(argc);
 	/* Initialing variables */
-	char *sourcePath = NULL;			/* Flag a */
-	char *targetPath = NULL;			/* Flag b */
-	int timeDeamon = 360;				/* Flag t */
-	int ifRecursion = 0;				/* Flag R */
-	int dependenceOfFileSize = 1024;	/* Flag s */
+	sourcePath = NULL;					/* Flag a */
+	targetPath = NULL;					/* Flag b */
+	timeDeamon = 360;					/* Flag t */
+	ifRecursion = 0;					/* Flag R */
+	dependenceOfFileSize = 1024;		/* Flag s */
 	/* Reseting opterr */
 	opterr = 0;
 	/* Validation, checking if arguments are properly typed */
@@ -86,14 +93,27 @@ int main(int argc, char **argv) {
 	if(checkIfPathIsCorrect(targetPath) != 0 || checkIfPathIsCorrect(sourcePath) != 0 ) 
 		exit (EXIT_FAILURE); 
 	/* End of validation */
-	
-	/* Daemon Itself *///🤩️
+
+	/* Daemon  🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️🤩️*/
 	preparingDaemon();
 	while (1) {
+		/* Making a break signal named "SIGUSR1" */
+		if(signal(SIGUSR1, handler)==SIG_ERR)
+    		exit(EXIT_FAILURE);
 		deleting(sourcePath, targetPath, ifRecursion);
 		reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
 		sleep(timeDeamon); /* Wait that many seconds as is set after '-t' argument */
     }
+}
+
+void deletingAndReviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize){
+
+}
+
+void handler(int signum){
+	writeToLog("Ctrl+'/' used");
+	// deleting(sourcePath, targetPath, ifRecursion);
+	// reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
 }
 
 /* Checking whether number of arguments is properly */ 
