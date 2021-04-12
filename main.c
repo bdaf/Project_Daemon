@@ -20,6 +20,7 @@ void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize);
 void copyRead(char* sourcePath, char* targetPath);
 
 void makePath(char* path, char* fileName, char* result);
+void writeToLog(char* msg);
 
 
 int main(int argc, char **argv) {
@@ -183,36 +184,20 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 	char path[511];
 	while(file = readdir(targetFolder)){
 		if(file->d_type == DT_REG){ /* If this is a regular file or empty dir. */
-
-
 			makePath(sourcePath, file->d_name, path);
-
-			openlog("Logs from my program!", LOG_PID, LOG_USER);
-        	syslog(LOG_INFO, path);
-
 			if(open(path, O_RDONLY)<0){
 				makePath(targetPath, file->d_name, path);		
 				remove(path);
-				syslog(LOG_INFO, path);
 			}
-			closelog();
-		}
+		} /* If this is a directory but not ('.' or '..') */
 		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
-
 			char sPath[255];
-			strcpy(sPath,sourcePath);
-			strcat(sPath,"/");
-			strcat(sPath,file->d_name);
-			openlog("Logs from my program!", LOG_PID, LOG_USER);
-			syslog(LOG_INFO, sPath);
-			if(open(sPath, O_RDONLY)<0){	
-				strcpy(path,targetPath);
-				strcat(path,"/");
-				strcat(path,file->d_name);
+			makePath(sourcePath, file->d_name, sPath);	
+			if(open(sPath, O_RDONLY)<0){
+				makePath(targetPath, file->d_name, path);		
 				deleting(sPath, path, ifRecursion);
 				remove(path);
 			}
-			closelog();
 		}
 	}
 }
@@ -222,20 +207,14 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 	DIR* targetFolder = opendir(targetPath);
 	DIR* sourceFolder = opendir(sourcePath);
 	
-	char path[511];
+	char sPath[511];
+	char tPath[511];
 	while(file = readdir(sourceFolder)){
-		if(file->d_type == DT_REG){
-			strcpy(path,targetPath);
-			strcat(path,"/");
-			strcat(path,file->d_name);
-
-			if(open(path, O_RDONLY)<0){
-						
-				strcpy(path,sourcePath);
-				strcat(path,"/");
-				strcat(path,file->d_name);
-
-				copyFile(sourcePath, targetPath, dependenceOfFileSize);				
+		if(file->d_type == DT_REG){ /* If this is a regular file. */
+			makePath(targetPath, file->d_name, tPath);
+			if(open(tPath, O_RDONLY)<0){/* We check if filefrom source is in target, if not, we create it. */
+				makePath(sourcePath, file->d_name, sPath);
+				copyFile(sPath, tPath, dependenceOfFileSize);				
 			}
 		}
 	}
@@ -248,25 +227,36 @@ void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize){
 void copyRead(char* sourcePath, char* targetPath){
 	int bufor[16];
 	int sourceFile = open(sourcePath,O_RDONLY);
-	int targetFile = open(targetFile, O_CREAT | O_WRONLY | O_TRUNC , 0644);
-
+	int targetFile = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC , 0644);
+	/* Error handling */
 	if(sourceFile == -1 || targetFile == -1){
+		char msg[511];
+		strcpy(msg,"Error occured during opening file: ");
+		strcat(msg,sourcePath);
+		strcat(msg," or ");
+		strcat(msg,targetPath);
+		writeToLog(msg);
 		exit(EXIT_FAILURE);
 	}
 
 	int readSource;
 	int writeTarget;
-	while ((readSource = read(sourcePath, bufor, sizeof(bufor))) > 0)
-	{
+	while ((readSource = read(sourceFile, bufor, sizeof(bufor))) > 0){
 		writeTarget = write(targetFile, bufor, (ssize_t)readSource);
-		if (writeTarget == readSource)
-		{
+		if (writeTarget < 0){
+			char msg[511];
+			strcpy(msg,"Error writing one of target files: ");
+	        strcat(msg,targetPath);
+			writeToLog(msg);
 			exit(EXIT_FAILURE);
 		}
-		
 	}
-	
+}
 
+void writeToLog(char* msg){
+	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    syslog(LOG_INFO, msg);
+	closelog();
 }
 
 
