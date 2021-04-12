@@ -87,30 +87,13 @@ int main(int argc, char **argv) {
 		exit (EXIT_FAILURE); 
 	/* End of validation */
 	
-	/* Daemon Itself */
+	/* Daemon Itself *///🤩️
 	preparingDaemon();
 	while (1) {
-		int _pid = fork();
-		/* Error handling */
-		if (_pid < 0) 
-			exit(EXIT_FAILURE);
-		/* Parent process */
-		if (_pid > 0) {
-			deleting(sourcePath, targetPath, ifRecursion);
-			reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
-			
-
-
-
-		}
-		/* Child process */
-		sleep(timeDeamon); /* wait that many seconds as is set after '-t' argument */
+		deleting(sourcePath, targetPath, ifRecursion);
+		reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
+		sleep(timeDeamon); /* Wait that many seconds as is set after '-t' argument */
     }
-
-		printf("\nEverything worked! 🤩️\n"); 
-		printf("\nClick anything to back to console..\n"); 
-		getchar(); 
-		return 0; 
 }
 
 /* Checking whether number of arguments is properly */ 
