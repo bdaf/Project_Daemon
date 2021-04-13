@@ -19,14 +19,12 @@ int checkIfPathIsCorrect(char* argv);
 void preparingDaemon();
 void deleting(char* sourcePath, char* targetPath, int ifRecursion);
 void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize);
-void deletingAndReviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize);
 
 void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize);
 void copyRead(char* sourcePath, char* targetPath);
 void copyHeavyFile(char* sourcePath, char* targetPath);
 
 void makePath(char* path, char* fileName, char* result);
-void writeToLog(char* msg);
 time_t getTime(char* path);
 off_t getSize(char* path);
 void setTime(char* targetPath, time_t timeOfMod);
@@ -81,12 +79,12 @@ int main(int argc, char **argv) {
 	case '?':
 		if (optopt == 'a' || optopt == 'b'|| optopt == 't'|| optopt == 's'){
 			write(1,"Option -",8);
-			write(1,(const char)optopt,1);
+			write(1,&optopt,3);
 			write(1," requires an argument.\n",23);			
 		}
 		else if (isprint (optopt)){
 			write(1,"Unknown option `-",17);
-			write(1,(const char)optopt,1);
+			write(1,&optopt,3);
 			write(1,"'.\n", 3);	
 		}
 		else{
@@ -115,12 +113,12 @@ int main(int argc, char **argv) {
     }
 }
 
-void deletingAndReviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependenceOfFileSize){
 
-}
 
 void handler(int signum){
-	writeToLog("Ctrl+'/' used");
+	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+	syslog(LOG_NOTICE,"Ctrl+'/' used");
+	closelog();
 	deleting(sourcePath, targetPath, ifRecursion);
 	reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
 }
@@ -172,7 +170,7 @@ void preparingDaemon(){
         umask(0);
 
         /* Create a new SID for the child process */
-        sid = setsid();
+        sid = setsid(); // TO DO
 
         /* Error handling */
         if (sid < 0) {
@@ -264,7 +262,7 @@ void copyFile(char* sourcePath, char* targetPath, int dependenceOfFileSize){
 	else
 		copyRead(sourcePath, targetPath);
 }
-// TEŻ DOBRZE BY BYŁO NAPISAĆ CO TO ROBI JAK KOPIUJE
+/* Copying using read and write */
 void copyRead(char* sourcePath, char* targetPath){
 	int bufor[16];
 	int sourceFile = open(sourcePath,O_RDONLY);
@@ -278,10 +276,10 @@ void copyRead(char* sourcePath, char* targetPath){
 	}
 
 	int readSource;
-	int writeTarget; // O CO TU CHODZI TRZEBA OPISAĆ
+	int writeTarget; /* Reading from source file and writing it into target file */
 	while ((readSource = read(sourceFile, bufor, sizeof(bufor))) > 0){
 		writeTarget = write(targetFile, bufor, (ssize_t)readSource);
-		if (writeTarget != readSource){
+		if (writeTarget != readSource){ // TO DO
 			openlog("File synchronization Daemon", LOG_PID, LOG_USER);
     		syslog(LOG_ERR,"Error writing one of target files: %s", targetPath);
 			closelog();
@@ -290,12 +288,6 @@ void copyRead(char* sourcePath, char* targetPath){
 	}
 	close(writeTarget);
 	close(readSource);
-}
-
-void writeToLog(char* msg){
-	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    syslog(LOG_NOTICE,msg);
-	closelog();
 }
 
 off_t getSize(char* path)
@@ -364,7 +356,6 @@ void copyHeavyFile(char* sourcePath, char* targetPath){
 
            close(fd_in);
            close(fd_out);
-		   //writeToLog(targetPath);
 }
 
 void setTime(char* targetPath, time_t timeOfMod){
