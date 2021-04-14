@@ -66,8 +66,7 @@ int main(int argc, char **argv) {
 		break;
 	case 's':
 		dependenceOfFileSize = atoi(optarg);
-		if (dependenceOfFileSize == 0)
-		{
+		if (dependenceOfFileSize == 0){
 			write(1,"Invalid value of argument -s 🤔️\n",37);
 			exit (EXIT_FAILURE); 
 		}
@@ -79,12 +78,12 @@ int main(int argc, char **argv) {
 	case '?':
 		if (optopt == 'a' || optopt == 'b'|| optopt == 't'|| optopt == 's'){
 			write(1,"Option -",8);
-			write(1,&optopt,3);
+			write(1,&optopt,1);
 			write(1," requires an argument.\n",23);			
 		}
 		else if (isprint (optopt)){
 			write(1,"Unknown option `-",17);
-			write(1,&optopt,3);
+			write(1,&optopt,1);
 			write(1,"'.\n", 3);	
 		}
 		else{
@@ -100,16 +99,15 @@ int main(int argc, char **argv) {
 	if(checkIfPathIsCorrect(targetPath) != 0 || checkIfPathIsCorrect(sourcePath) != 0 ) 
 		exit (EXIT_FAILURE); 
 	/* End of validation */
-
+	/* Making a break signal named "SIGUSR1" */
+	if(signal(SIGUSR1, handler)==SIG_ERR)
+    	exit(EXIT_FAILURE);
 	/* Daemon */
 	preparingDaemon();
 	while (1) {
-		/* Making a break signal named "SIGUSR1" */
-		if(signal(SIGUSR1, handler)==SIG_ERR)
-    		exit(EXIT_FAILURE);
+		sleep(timeDeamon); /* Wait that many seconds as is set after '-t' argument */
 		deleting(sourcePath, targetPath, ifRecursion);
 		reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
-		sleep(timeDeamon); /* Wait that many seconds as is set after '-t' argument */
     }
 }
 
@@ -156,7 +154,7 @@ void preparingDaemon(){
         /* Error handling */
         if (pid < 0){
 			openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    		syslog(LOG_ERR,"Error during making a fork");
+    		syslog(LOG_ERR,"Error while making a fork");
 			closelog();
             exit(EXIT_FAILURE); 
 		}
@@ -170,12 +168,12 @@ void preparingDaemon(){
         umask(0);
 
         /* Create a new SID for the child process */
-        sid = setsid(); // TO DO
+        sid = setsid();
 
         /* Error handling */
         if (sid < 0) {
 			openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    		syslog(LOG_ERR,"Error during making a setsid()");
+    		syslog(LOG_ERR,"Error while making a new session");
 			closelog();
             exit(EXIT_FAILURE);
 		}
@@ -226,6 +224,15 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 	struct dirent* file = NULL;
 	DIR* targetFolder = opendir(targetPath); /* Opening directories */
 	DIR* sourceFolder = opendir(sourcePath);
+	if(targetFolder == NULL || sourceFolder == NULL){ /* Error handling for opendir() */
+		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+		if(sourcePath == NULL)
+    		syslog(LOG_ERR,"Error while using opendir in path: %s",sourcePath);
+		else
+			syslog(LOG_ERR,"Error while using opendir in path: %s",targetPath);
+		closelog();
+        exit(EXIT_FAILURE);
+	}
 	char sPath[511];
 	char tPath[511];
 	while(file = readdir(sourceFolder)){ /* Reading directory - going through the files one by one */
@@ -268,23 +275,31 @@ void copyRead(char* sourcePath, char* targetPath){
 	int sourceFile = open(sourcePath,O_RDONLY);
 	int targetFile = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC , 0644);
 	/* Error handling */
-	if(sourceFile == -1 || targetFile == -1){
+	if(sourceFile < 0 || targetFile < 0){
 		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    	syslog(LOG_ERR,"Error occured during opening file: %s or %s",sourcePath, targetPath);
+		if(sourcePath < 0)
+    		syslog(LOG_ERR,"Error occured while opening file: %s",sourcePath);
+		else
+			syslog(LOG_ERR,"Error occured while opening file: %s",targetPath);
 		closelog();
 		exit(EXIT_FAILURE);
 	}
-
 	int readSource;
 	int writeTarget; /* Reading from source file and writing it into target file */
 	while ((readSource = read(sourceFile, bufor, sizeof(bufor))) > 0){
 		writeTarget = write(targetFile, bufor, (ssize_t)readSource);
-		if (writeTarget != readSource){ // TO DO
+		if (writeTarget < 0){
 			openlog("File synchronization Daemon", LOG_PID, LOG_USER);
     		syslog(LOG_ERR,"Error writing one of target files: %s", targetPath);
 			closelog();
 			exit(EXIT_FAILURE);
 		}
+	}
+	if(readSource < 0){
+		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    	syslog(LOG_ERR,"Error while reading one of source files: %s",sourcePath);
+		closelog();
+		exit(EXIT_FAILURE);
 	}
 	close(writeTarget);
 	close(readSource);
@@ -292,24 +307,25 @@ void copyRead(char* sourcePath, char* targetPath){
 
 off_t getSize(char* path)
 {
-    struct stat size;
-    if(stat(path, &size)==0)
-        return size.st_size;
+    struct stat file;
+    if(stat(path, &file)==0)
+        return file.st_size;
+	/* Error handling */
 	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    syslog(LOG_ERR,"Error during geting size of file: %s", path);
+    syslog(LOG_ERR,"Error while geting size of file: %s", path);
 	closelog();
     exit(EXIT_FAILURE);
 }
 
 time_t getTime(char* path) { /* Gets modyfication time from file / directory */
     struct stat file;
-    if(stat(path, &file) == -1){
-		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    	syslog(LOG_ERR,"Error during downloading modyfication time from file: %s",path);
-		closelog();
-        exit(EXIT_FAILURE);
-	}
-    return file.st_mtime;
+    if(stat(path, &file) == 0) 
+		return file.st_mtime;
+	/* Error handling */
+	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    syslog(LOG_ERR,"Error while downloading modyfication time from file: %s",path);
+	closelog();
+    exit(EXIT_FAILURE);  
 }
 
 void copyHeavyFile(char* sourcePath, char* targetPath){
@@ -320,14 +336,14 @@ void copyHeavyFile(char* sourcePath, char* targetPath){
            fd_in = open(sourcePath, O_RDONLY);
            if (fd_in == -1) {
 			  	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured during opening source file: %s",sourcePath);
+    			syslog(LOG_ERR,"Error occured while opening source file: %s",sourcePath);
 				closelog();
               	exit(EXIT_FAILURE);
            }
 
            if (fstat(fd_in, &stat) == -1) {
                	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured during using fstat");
+    			syslog(LOG_ERR,"Error occured while using fstat");
 				closelog();
                	exit(EXIT_FAILURE);
            }
@@ -337,7 +353,7 @@ void copyHeavyFile(char* sourcePath, char* targetPath){
            fd_out = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
            if (fd_out == -1) {
                	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured during opening target file: %s",targetPath);
+    			syslog(LOG_ERR,"Error occured while opening target file: %s",targetPath);
 				closelog();
                	exit(EXIT_FAILURE);
            }
@@ -346,7 +362,7 @@ void copyHeavyFile(char* sourcePath, char* targetPath){
                ret = copy_file_range(fd_in, NULL, fd_out, NULL, len, 0);
                if (ret == -1) {
                     openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    				syslog(LOG_ERR,"Error occured during using copy_file_range from: %s to: %s",sourcePath, targetPath);
+    				syslog(LOG_ERR,"Error occured while using copy_file_range from: %s to: %s",sourcePath, targetPath);
 					closelog();
                    	exit(EXIT_FAILURE);
                }
@@ -364,7 +380,7 @@ void setTime(char* targetPath, time_t timeOfMod){
 	time.modtime = timeOfMod;
 	if(utime(targetPath, &time)<0){
 		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    	syslog(LOG_ERR,"Error occured during setting time for file: %s",targetPath);
+    	syslog(LOG_ERR,"Error occured while setting time for file: %s",targetPath);
 		closelog();
 		exit(EXIT_FAILURE);
 	}
