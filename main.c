@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
 	/* Initialing variables */
 	sourcePath = NULL;					/* Flag a */
 	targetPath = NULL;					/* Flag b */
-	timeDeamon = 360;					/* Flag t */
+	timeDeamon = 300;					/* Flag t */
 	ifRecursion = 0;					/* Flag R */
 	dependenceOfFileSize = 1024;		/* Flag s */
 	/* Reseting opterr */
@@ -105,7 +105,16 @@ int main(int argc, char **argv) {
 	/* Daemon */
 	preparingDaemon();
 	while (1) {
+		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+		syslog(LOG_NOTICE,"Daemon has been put to sleep");
+		closelog();
+
 		sleep(timeDeamon); /* Wait that many seconds as is set after '-t' argument */
+
+		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+		syslog(LOG_NOTICE,"Daemon has been woken up");
+		closelog();
+
 		deleting(sourcePath, targetPath, ifRecursion);
 		reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
     }
@@ -117,8 +126,6 @@ void handler(int signum){
 	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
 	syslog(LOG_NOTICE,"Ctrl+'/' used");
 	closelog();
-	deleting(sourcePath, targetPath, ifRecursion);
-	reviewing(sourcePath, targetPath, ifRecursion, dependenceOfFileSize);
 }
 
 /* Checking whether number of arguments is properly */ 
@@ -206,6 +213,9 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 			if(open(path, O_RDONLY)<0){
 				makePath(targetPath, file->d_name, path);		
 				remove(path);
+				openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+				syslog(LOG_INFO,"File which has been deleted: %s", path);
+				closelog();
 			}
 		} /* If this is a directory but not ('.' or '..') */
 		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
@@ -215,6 +225,9 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 				makePath(targetPath, file->d_name, path);		
 				deleting(sPath, path, ifRecursion);
 				remove(path);
+				openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+				syslog(LOG_INFO,"File which has been deleted: %s", path);
+				closelog();
 			}
 		}
 	}
@@ -257,8 +270,7 @@ void reviewing(char* sourcePath, char* targetPath, int ifRecursion, int dependen
 			}
 			else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
 				reviewing(sPath, tPath, ifRecursion, dependenceOfFileSize);	
-			}
-			  
+			}  
 		}
 	}
 }
@@ -303,6 +315,10 @@ void copyRead(char* sourcePath, char* targetPath){
 	}
 	close(writeTarget);
 	close(readSource);
+
+	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+	syslog(LOG_INFO,"File which has been created / modyfing %s", targetPath);
+	closelog();
 }
 
 off_t getSize(char* path)
@@ -330,48 +346,51 @@ time_t getTime(char* path) { /* Gets modyfication time from file / directory */
 
 void copyHeavyFile(char* sourcePath, char* targetPath){
 	int fd_in, fd_out;
-           struct stat stat;
-           off64_t len, ret;
+    struct stat stat;
+    off64_t len, ret;
 
-           fd_in = open(sourcePath, O_RDONLY);
-           if (fd_in == -1) {
-			  	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured while opening source file: %s",sourcePath);
-				closelog();
-              	exit(EXIT_FAILURE);
-           }
+    fd_in = open(sourcePath, O_RDONLY);
+    if (fd_in == -1) {
+		openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    	syslog(LOG_ERR,"Error occured while opening source file: %s",sourcePath);
+		closelog();
+        exit(EXIT_FAILURE);
+    }
 
-           if (fstat(fd_in, &stat) == -1) {
-               	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured while using fstat");
-				closelog();
-               	exit(EXIT_FAILURE);
-           }
+    if (fstat(fd_in, &stat) == -1) {
+        openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    	syslog(LOG_ERR,"Error occured while using fstat");
+		closelog();
+        exit(EXIT_FAILURE);
+    }
 
-           len = stat.st_size;
+    len = stat.st_size;
 
-           fd_out = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-           if (fd_out == -1) {
-               	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    			syslog(LOG_ERR,"Error occured while opening target file: %s",targetPath);
-				closelog();
-               	exit(EXIT_FAILURE);
-           }
+    fd_out = open(targetPath, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd_out == -1) {
+        openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    	syslog(LOG_ERR,"Error occured while opening target file: %s",targetPath);
+		closelog();
+        exit(EXIT_FAILURE);
+    }
 
-           do {
-               ret = copy_file_range(fd_in, NULL, fd_out, NULL, len, 0);
-               if (ret == -1) {
-                    openlog("File synchronization Daemon", LOG_PID, LOG_USER);
-    				syslog(LOG_ERR,"Error occured while using copy_file_range from: %s to: %s",sourcePath, targetPath);
-					closelog();
-                   	exit(EXIT_FAILURE);
-               }
+    do {
+        ret = copy_file_range(fd_in, NULL, fd_out, NULL, len, 0);
+        if (ret == -1) {
+            openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+    		syslog(LOG_ERR,"Error occured while using copy_file_range from: %s to: %s",sourcePath, targetPath);
+			closelog();
+            exit(EXIT_FAILURE);
+        }
+        len -= ret;
+    } while (len > 0 && ret > 0);
 
-               len -= ret;
-           } while (len > 0 && ret > 0);
+    close(fd_in);
+    close(fd_out);
 
-           close(fd_in);
-           close(fd_out);
+	openlog("File synchronization Daemon", LOG_PID, LOG_USER);
+	syslog(LOG_INFO,"File which has been created / modyfing using copy_file_range()  %s ", targetPath);
+	closelog();
 }
 
 void setTime(char* targetPath, time_t timeOfMod){
