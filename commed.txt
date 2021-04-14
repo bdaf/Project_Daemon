@@ -1,2 +1,0 @@
-
-./program -a /home/rafal/so/Project_Daemon/a -b /home/rafal/so/Project_Daemon/b -R

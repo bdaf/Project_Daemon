@@ -221,9 +221,9 @@ void deleting(char* sourcePath, char* targetPath, int ifRecursion){
 		else if(file->d_type == DT_DIR && !(strcmp( file->d_name, "." )==0 || strcmp( file->d_name, ".." )==0) && ifRecursion == 1){
 			char sPath[255];
 			makePath(sourcePath, file->d_name, sPath);	
+			makePath(targetPath, file->d_name, path);		
+			deleting(sPath, path, ifRecursion);
 			if(open(sPath, O_RDONLY)<0){
-				makePath(targetPath, file->d_name, path);		
-				deleting(sPath, path, ifRecursion);
 				remove(path);
 				openlog("File synchronization Daemon", LOG_PID, LOG_USER);
 				syslog(LOG_INFO,"File which has been deleted: %s", path);
